@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trouble Map B</title>
+
+    <!-- 引入 Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-GLhlTQ8iRABdZLl6O3oVMWSktWYJyj1C6VxLzJEN9eDbPczrFepxImNggApHVgoE" crossorigin="anonymous">
+
+    <!-- Google Maps API -->
+    <script async
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCX03_MOSrGu8CkY7BxHaIGhJBHM3NDjP8&callback=initMap&libraries=places"
+        defer></script>
+
+    <!-- 添加内联 CSS 让地图填充容器 -->
+    <style>
+        #map {
+            height: 500px;
+            width: 45%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1 class="text-center mt-4">Trouble Map Expanded</h1>
+        <!-- 地图容器 -->
+        <div id="map"></div>
+    </div>
+    <div class="container text-center mt-4">
+        <button onclick="exportToCSV()" class="btn btn-primary">
+            CSVファイルをエクスポート</button>
+    </div>
+    
+    <!-- 引入外部 JavaScript 文件 -->
+    <script src="mapBFunctions.js"></script>
+</body>
+
+</html>
