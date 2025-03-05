@@ -37,6 +37,12 @@
     
     <!-- 引入外部 JavaScript 文件 -->
     <script src="mapBFunctions.js"></script>
+    <script type="module" src="markerConfig.js"></script>
+    <script type="module">
+        import infoMessages from './questions.js';
+        window.infoMessages = infoMessages;
+    </script>
+    
 </body>
 
 </html>
