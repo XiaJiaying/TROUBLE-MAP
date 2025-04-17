@@ -1,7 +1,9 @@
+// mapBFunctions.js
+import { hotspots, generateRandomNearHotspots } from './hotspots.js';
+
 let selectedMarkers = []; // 初始化选中的标记数组
 let inputValue; // 定义 inputValue 为全局变量
 let userResponses = [];
-import { hotspots, randomConfig } from './markerConfig.js';
 
 
 function initMap() {
@@ -10,8 +12,20 @@ function initMap() {
         zoom: 17.8,
         center: center
     });
-    
-    generateMarkers();
+
+    // 允许随机偏移范围（例如 50m 半径）
+    const range = { lat: 0.0005, lng: 0.0005 }; 
+    const countPerHotspot = 3; 
+
+    // 生成随机坐标
+    const positions = {
+        access: generateRandomNearHotspots(hotspots.access, range, countPerHotspot),
+        elevatorwaiting: generateRandomNearHotspots(hotspots.elevatorwaiting, range, countPerHotspot),
+        monitor: generateRandomNearHotspots(hotspots.monitor, range, countPerHotspot),
+        restaurantwaiting: generateRandomNearHotspots(hotspots.restaurantwaiting, range, countPerHotspot),
+        xiegui: generateRandomNearHotspots(hotspots.xiegui, range, countPerHotspot),
+        zizhuspace: generateRandomNearHotspots(hotspots.zizhuspace, range, countPerHotspot)
+    };
 
     // 定义图标
     const icons = {
@@ -37,6 +51,15 @@ function initMap() {
         restaurantwaitingAnswered: { url: 'troublemap2/restaurantwaiting/dengdai.png', scaledSize: new google.maps.Size(25, 25), opacity: 0.5 },
         xieguiAnswered: { url: 'troublemap2/xiegui/xiegui.png', scaledSize: new google.maps.Size(25, 25), opacity: 0.5 },
         zizhuspaceAnswered: { url: 'troublemap2/zizhuspace/wenhao.png', scaledSize: new google.maps.Size(25, 25), opacity: 0.5 }
+    };
+
+    const infoMessages = {
+        access: "自転車駐輪場の出入口が少なすぎて、毎回遠回りしなきゃいけない。本当に面倒くさい…",
+        elevatorwaiting: "エレベーターをずっと待っているのに、全然来なくて授業に間に合いそうにありません。どうしよう…？",
+        monitor: "モニターがいつも接触不良で、ひどい時は壊れているものもあります。どうしたらいいのでしょうか？",
+        restaurantwaiting: "すごく長い列に並ばないとご飯が食べられなくて、しかも座席も少なすぎます…。どうにかならないかな？",
+        xiegui: "いつも自分の靴がどの下駄箱にあるか忘れてしまって、よく間違えてしまいます…",
+        zizhuspace: "こちらの自習スペースでは飲食やオンライン会議をしても大丈夫ですか？"
     };
 
     const markerGroups = {
@@ -79,10 +102,8 @@ function initMap() {
                     lat: marker.position.lat(),
                     lng: marker.position.lng(),
                     type: marker.type,
-                    originalMessage: marker.originalMessage || "メッセージなし", // 防止 undefined // 记录原始问题描述
-                    content: inputValue || "未回答" // 确保不为空
+                    content: inputValue
                 });
-
             }
         });
         selectedMarkers = [];
@@ -93,52 +114,29 @@ function initMap() {
             alert("没有数据可以导出！");
             return;
         }
-    
-        console.log("开始生成 CSV 文件...");
-    
-        //  确保 UTF-8 BOM 变量被定义
-        const BOM = "\uFEFF";  // Excel 兼容 UTF-8，防止乱码
-    
-        // CSV 头部
-        const headers = ["经度", "纬度", "类型", "信息窗中的问题", "回答内容"];
-    
-        // 确保数据不会包含 `undefined` 或 `NaN`
+
+        // 创建 CSV 内容
+        const headers = ["Latitude", "Longitude", "Type", "Content"];
         const rows = userResponses.map(response => [
             response.lat,
             response.lng,
             response.type,
-            `"${(response.originalMessage || "メッセージなし").replace(/"/g, '""')}"`, // 避免 undefined
-            `"${(response.content || "未回答").replace(/"/g, '""')}"` // 避免 undefined
+            `"${response.content.replace(/"/g, '""')}"` // 处理内容中的双引号
         ]);
-    
-        //  先定义 `csvContent`
-        let csvContent = [headers.join(","), ...rows.map(row => row.join(","))].join("\n");
-    
-        //  现在 `BOM` 已经定义，不会报错
-        csvContent = BOM + csvContent;
-    
-        console.log("CSV 内容：", csvContent);
-    
-        // 创建 Blob 文件对象
+
+        const csvContent = [headers.join(","), ...rows.map(row => row.join(","))].join("\n");
+
+        // 创建下载链接
         const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
         const url = URL.createObjectURL(blob);
-        
-        console.log("生成的 URL：", url);
-    
-        // 创建并触发下载
+
         const link = document.createElement("a");
         link.href = url;
         link.download = "user_responses.csv";
         document.body.appendChild(link);
-    
-        setTimeout(() => {
-            link.click();
-            document.body.removeChild(link);
-            console.log("CSV 下载完成！");
-        }, 100);
+        link.click();
+        document.body.removeChild(link);
     }
-    
-    
 
     // 使函数可供全局调用
     window.exportToCSV = exportToCSV;
@@ -166,12 +164,7 @@ function initMap() {
             }
         });
 
-        // 随机选择不同的表达方式
-        let messageOptions = infoMessages[messageKey] || ["デフォルトのメッセージ"];
-        let message = messageOptions[Math.floor(Math.random() * messageOptions.length)];
-
-        marker.originalMessage = message;
-
+        let message = infoMessages[messageKey];
         infoWindow.setContent(`
                     <div>
                         <p>${message}</p>
@@ -215,36 +208,11 @@ function initMap() {
         marker.addListener('click', () => handleMarkerClick(marker, markerGroups[type], selectedIcon, answeredIcon, type));
     }
 
-    function generateMarkers() {
-        const markerTypes = Object.keys(icons).filter(type => !type.includes("Selected") && !type.includes("Answered"));
-    
-        let numHotspotMarkers = Math.floor(randomConfig.totalMarkers * randomConfig.hotspotRatio);
-        let numRandomMarkers = randomConfig.totalMarkers - numHotspotMarkers;
-    
-        // 1. 在热点区域生成标记
-        for (let i = 0; i < numHotspotMarkers; i++) {
-            let hotspot = hotspots[Math.floor(Math.random() * hotspots.length)];
-            let randomLat = hotspot.lat + (Math.random() - 0.5) * 0.0003 * hotspot.weight;
-            let randomLng = hotspot.lng + (Math.random() - 0.5) * 0.0003 * hotspot.weight;
-            let randomType = markerTypes[Math.floor(Math.random() * markerTypes.length)];
-    
-            addMarker({ lat: randomLat, lng: randomLng }, randomType);
-        }
-    
-        // 2. 在整个地图区域随机生成标记
-        for (let i = 0; i < numRandomMarkers; i++) {
-            let randomLat = randomConfig.minLat + (randomConfig.maxLat - randomConfig.minLat) * Math.random();
-            let randomLng = randomConfig.minLng + (randomConfig.maxLng - randomConfig.minLng) * Math.random();
-            let randomType = markerTypes[Math.floor(Math.random() * markerTypes.length)];
-    
-            addMarker({ lat: randomLat, lng: randomLng }, randomType);
-        }
-    }
-    
+
+
     for (const type in positions) {
         positions[type].forEach(position => addMarker(position, type));
     }
 
-    const infoWindow = new google.maps.InfoWindow();// 设置信息窗口
-
+    const infoWindow = new google.maps.InfoWindow();
 }
